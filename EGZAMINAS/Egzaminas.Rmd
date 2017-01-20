@@ -1,0 +1,186 @@
+---
+title: "Egzamin"
+author: "Kestutis Gudziunas"
+date: '2017 m sausis 20 d '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##1
+```{r}
+set.seed(1234567890)
+x <- rnorm(5000)
+
+```
+a)
+```{r}
+mean(x) #x vidurkis
+sd(x) #x standartinis nuokrypis
+```
+b)
+```{r}
+low<-x[mean(x)-3*sd(x)<x]
+up<-x[x>(mean(x)+3*sd(x))]
+newx<-x[x>(mean(x)+3*sd(x))&(mean(x)-3*sd(x))<x] #x patenkantys i duotaji intervala
+```
+c)Pašalinkite rastas išskirtis iš x vektorius ir nubrėžkite atnaujinto x histogramą
+```{r}
+newx2<-setdiff(x,newx)
+hist(newx, main="x išskirtys") #brėziam histograma
+```
+##2
+a)X teorinis skirstinys yra X=X1 + X2, tai yra X~N(2,5)
+```{r}
+n   <- seq(-20,20,length=1000)
+y   <- dnorm(n,mean=2, sd=sqrt(2)+sqrt(3)) #randamas teorinis skirstinys
+plot(n,y, type="l", lwd=1, main="Tankio funkcija", xlab="n",ylab="prob") #bražiamas grafikas
+```
+
+b)
+```{r}
+x1<-rnorm(1000,3,sqrt(2)) 
+x2<-rnorm(1000,-1,sqrt(3))
+x<-x1+x2 #generuojama imtis
+
+x2<-rnorm(1000,2,sd=5) 
+```
+
+c)
+```{r}
+summary(x) #lyginami teorinis ir empyrinis skirstiniai
+summary(x2)
+```
+Gauti duomeenys beveik nesiskiria, arba skiriasi labai mazai
+
+d)
+```{r}
+pnorm(2,mean=2,sd=sqrt(2)+sqrt(3)) #randama teorine |X|>2 tikimybe
+
+```
+e)
+```{r}
+sum(x>2)/length(x) #Monte-Carlo metodu rasta |X|>2 tikimybe
+```
+Gautos tikimybes yra beveik vienodos.
+
+##3
+a)
+```{r}
+data <- read.csv("https://raw.githubusercontent.com/1vbutkus/Econometrics1/master/Egzaminas/data.csv", header = TRUE,sep=";",dec=".",skip=7) #nuskaitomas duomenu masyvas
+head(data)
+class(data)
+typeof(data)
+```
+b)
+```{r}
+NAs = rowSums(is.na(data))
+fixed_data = data[NAs == 0,]                         # Duomenys be NA
+sum(NAs)                                             # Kiek eilučių buvo su NA(t.y. kiek panaikinom)
+nrow(fixed_data)                                     # Kiek eilučių liko po NA pašalinimo
+sapply(fixed_data, class)
+dim(data)
+dim(fixed_data)
+
+which(data$kaina%in%"MISSING") #tikrinama kuriose eilutese yra MISSING reiksmes
+which(data$rida%in%"MISSING")
+which(data$amzius%in%"MISSING")
+which(data$galia%in%"MISSING")
+which(data$markesKodas%in%"MISSING")
+```
+
+```{r}
+fix_data<-data[-c(54,97,100,5,201,131),] #panaikinamos eilutes su MISSiNG reiksmem ir eilutė kurioje netinkamas amziau formatas
+sapply(fix_data,class)
+```
+
+```{r}
+fix_data$kaina=as.numeric(fix_data$kaina) #pirmu keturiu stulpeliu tipas paverciamas i numeric 
+fix_data$rida=as.numeric(fix_data$rida)
+fix_data$amzius=as.numeric(fix_data$amzius)
+fix_data$galia=as.numeric(fix_data$galia)
+
+sapply(fix_data,class)
+```
+
+c)
+```{r}
+plot(fix_data) #grafike matom visų kintamuoju priklausomai vienas nuo kito sklaidos diagramas
+summary(fix_data) #pateikiami duomenys apie masyva fix_data
+cor(fix_data[,1:4]) #koreliacijos koficientai tarp atitinkamų kintamuju
+```
+d)
+```{r}
+trainSet_ind = sample(1:nrow(fix_data), round(nrow(fix_data)*0.8))   # Atsitiktinių indeksų aibė (80% duomenų)
+testSet_ind = setdiff(1:nrow(fix_data), trainSet_ind)                # Atsitiktinių indeksų aibė, (20% duomenų)
+trainSet = fix_data[trainSet_ind,]                                   # 80%
+testSet = fix_data[testSet_ind,] 
+```
+2
+a)
+```{r}
+library("knitr")
+head(trainSet,1)
+mod<-lm(kaina~rida+amzius+galia+factor(markesKodas),trainSet) #kuriamas modelis
+summary(mod) #modelio summary is kurios matyti, kad taisant modeli 
+kable(summary(mod)$coef)
+```
+|                      |    Estimate| Std. Error|   t value| Pr(>&#124;t&#124;)|
+|:---------------------|-----------:|----------:|---------:|------------------:|
+|(Intercept)           | 171.0999264| 41.2674873|  4.146119|          0.0000453|
+|rida                  |   0.0001620|  0.0000413|  3.927369|          0.0001090|
+|amzius                |  -3.4011800|  1.2705170| -2.677005|          0.0078814|
+|galia                 |  -0.6786161|  0.5385127| -1.260167|          0.2086931|
+|factor(markesKodas)ky | -24.3100135| 14.2907026| -1.701107|          0.0900699|
+|factor(markesKodas)qt |  16.4734207| 14.3566305|  1.147443|          0.2522104|
+
+Kadangi Ispaskutinio stulpelio matome, kad kurian(taisant) nauja modeli mes pasalinsim tokius kintamuosius kaip galia ir markesKoda, nes ju Pr(>|t|)>0.05 
+b)
+```{r}
+fit<-lm(kaina~rida+amzius,trainSet)
+summary(fit)
+library("knitr")
+kable(summary(fit)$coef)
+```
+|            |    Estimate| Std. Error|   t value| Pr(>&#124;t&#124;)|
+|:-----------|-----------:|----------:|---------:|------------------:|
+|(Intercept) | 127.2442894| 23.3774387|  5.443038|          0.0000001|
+|rida        |   0.0001629|  0.0000416|  3.913416|          0.0001149|
+|amzius      |  -3.3488841|  1.2810329| -2.614206|          0.0094383|
+
+Matematinė lygtis kaina=0.0001*rida-3.3488*rida
+
+c)
+```{r}
+newdata = predict(fit, trainSet)
+sd(newdata - trainSet$kaina)
+summary(fit)$sigma
+plot(density((newdata - trainSet$kaina)))
+
+shapiro.test(fit$res)
+```
+3
+a)
+```{r}
+RMSE = function(data){
+  n = length(data$kaina)
+  return(sqrt(mean(data$kaina - predict(fit, data))^2))
+}
+RMSE(trainSet)
+RMSE(testSet)
+```
+b)
+```{r}
+quantile(predict(fit, testSet), probs = c(0.05, 0.95))
+
+plot(predict(fit, testSet), testSet$kaina, xlab = "prognozė", ylab = "faktinės reikšmės")
+abline(v = 124.4267, col = 2)
+abline(v = 233.1123, col = 2)
+```
+
+c)
+```{r}
+(sum(predict(fit, testSet) < 124.4267 | predict(fit, testSet) > 233.1123)) / length(predict(fit, testSet)) * 100
+```
+
